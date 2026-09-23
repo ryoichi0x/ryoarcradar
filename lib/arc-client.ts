@@ -11,6 +11,7 @@ export async function getArcBlockNumber(): Promise<bigint> {
   return getArcPublicClient().getBlockNumber();
 }
 
-export function getArcChainId(): number {
-  return arc.id;
+/** Read the actual chain ID returned by the configured Arc RPC endpoint. */
+export async function getArcChainId(): Promise<number> {
+  return getArcPublicClient().getChainId();
 }
