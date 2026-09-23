@@ -2,9 +2,11 @@
 
 RyoArcRadar is a dark trading dashboard for the Arc blockchain. It will help traders discover tokens, check risk, follow whales, and understand wallet activity.
 
-## Version 0.1
+## Version 0.2 Phase 1
 
-This first version is only the **dashboard foundation**. It includes a responsive UI, reusable React components, navigation, and clearly marked mock data. It is not connected to live blockchain data yet.
+This phase adds a **read-only connection** to Arc Testnet. The dashboard asks the configured RPC endpoint for the latest block number and shows whether the connection is working.
+
+The rest of the dashboard still uses clearly labeled **MOCK DATA**. It is not connected to real token, whale, liquidity, or wallet data yet.
 
 ## Run it on your computer
 
@@ -16,35 +18,74 @@ This first version is only the **dashboard foundation**. It includes a responsiv
 npm install
 ```
 
-4. Start the development website:
+4. Create a local environment file:
+
+```bash
+cp .env.example .env.local
+```
+
+5. Open `.env.local` and set the Arc RPC endpoint:
+
+```env
+NEXT_PUBLIC_ARC_RPC_URL=https://rpc.testnet.arc.io
+```
+
+Use the RPC URL provided by your Arc network provider if you have a different endpoint. Never put private keys or seed phrases in this file, and never commit `.env.local`.
+
+6. Start the development website:
 
 ```bash
 npm run dev
 ```
 
-5. Open http://localhost:3000 in your browser.
+7. Open http://localhost:3000 in your browser.
 
-To create a production build, use `npm run build`, then `npm start`.
+## Test the Arc status endpoint
+
+With the app running, open this URL in a browser:
+
+```text
+http://localhost:3000/api/arc/status
+```
+
+A successful response looks like this:
+
+```json
+{
+  "connected": true,
+  "blockNumber": "12345",
+  "chainId": "5042002",
+  "timestamp": "2026-01-01T00:00:00.000Z"
+}
+```
+
+If the RPC is missing or unavailable, the endpoint returns HTTP `503` and `{ "connected": false, "error": "..." }`. The dashboard remains usable and marks its other values as **MOCK DATA**.
 
 ## What the files do
 
 - `app/page.tsx` — the main Radar dashboard screen.
 - `app/layout.tsx` — shared page layout and metadata.
 - `app/globals.css` — global colors and Tailwind styles.
+- `app/api/arc/status/route.ts` — server API route that checks the latest Arc block.
 - `app/tokens`, `app/rug-check`, `app/whales`, `app/wallet` — starter pages for navigation.
-- `components/` — small reusable UI parts such as the sidebar, header, cards, and activity lists.
+- `components/` — reusable UI parts, including `NetworkStatus.tsx`.
+- `lib/arc.ts` — Arc Testnet chain configuration and RPC environment lookup.
+- `lib/arc-client.ts` — read-only viem client logic.
 - `lib/mock-data.ts` — sample data used by the dashboard. This is not real blockchain data.
 - `types/` — TypeScript shapes that describe our data.
+- `.env.example` — the environment variable template.
 - `package.json` — project packages and commands.
 
-## Safety notes
+## Read-only safety notes
 
-No private keys or API secrets are used in this version. When we connect Arc, secrets must stay in server-side environment variables (for example, `.env.local`, which should never be committed). `viem` is included and ready for the future blockchain integration.
+This phase only calls the public RPC `getBlockNumber` method. It does not create wallets, use private keys, sign messages, or send transactions. `viem` is used only for read-only blockchain access. `NEXT_PUBLIC_ARC_RPC_URL` is an endpoint URL, not a private credential.
+
+To create a production build, use `npm run build`, then `npm start`.
 
 ## What we will build next
 
-1. Confirm the Arc network configuration and connect a read-only `viem` client.
-2. Replace the mock dashboard values with safe, public blockchain data.
-3. Make the token contract search work.
-4. Add token analytics and Rug Check results.
-5. Add whale and wallet tracking, then alerts.
+1. Replace mock dashboard values with safe, public blockchain data.
+2. Make the token contract search work.
+3. Add token analytics and Rug Check results.
+4. Add whale and wallet tracking, then alerts.
+5. Add X/Twitter automation with secure server-side credentials only if needed.
