@@ -2,90 +2,107 @@
 
 RyoArcRadar is a dark trading dashboard for the Arc blockchain. It will help traders discover tokens, check risk, follow whales, and understand wallet activity.
 
-## Version 0.2 Phase 1
+## Version 0.2 Phase 2
 
-This phase adds a **read-only connection** to Arc Testnet. The dashboard asks the configured RPC endpoint for the latest block number and shows whether the connection is working.
+This phase adds a **real, read-only ERC-20 token scanner** for Arc Testnet. Enter a token contract address on the Radar page and RyoArcRadar reads `name()`, `symbol()`, `decimals()`, and `totalSupply()` directly from the Arc RPC.
 
-The rest of the dashboard still uses clearly labeled **MOCK DATA**. It is not connected to real token, whale, liquidity, or wallet data yet.
+The scanner results are labeled **LIVE ON-CHAIN DATA**. Other dashboard cards and activity sections still use clearly labeled **MOCK DATA**.
 
 ## Run it on your computer
 
 1. Install [Node.js](https://nodejs.org/) (version 18 or newer).
-2. Open a terminal in this project folder.
-3. Install the packages:
+2. Install packages:
 
 ```bash
 npm install
 ```
 
-4. Create a local environment file:
+3. Create a local environment file:
 
 ```bash
 cp .env.example .env.local
 ```
 
-5. Open `.env.local` and set the Arc RPC endpoint:
+4. Set the Arc Testnet RPC URL in `.env.local`:
 
 ```env
 NEXT_PUBLIC_ARC_RPC_URL=https://rpc.testnet.arc.io
 ```
 
-Use the RPC URL provided by your Arc network provider if you have a different endpoint. Never put private keys or seed phrases in this file, and never commit `.env.local`.
+Never commit `.env.local`. This phase does not need a private key or seed phrase.
 
-6. Start the development website:
+5. Start the app:
 
 ```bash
 npm run dev
 ```
 
-7. Open http://localhost:3000 in your browser.
+Then open http://localhost:3000.
 
-## Test the Arc status endpoint
+## Token scanner API
 
-With the app running, open this URL in a browser:
+Example request:
 
 ```text
-http://localhost:3000/api/arc/status
+GET http://localhost:3000/api/tokens/0xYourTokenContractAddress
 ```
 
-A successful response looks like this:
+Successful response:
 
 ```json
 {
-  "connected": true,
-  "blockNumber": "12345",
+  "success": true,
+  "network": "Arc Testnet",
   "chainId": "5042002",
-  "timestamp": "2026-01-01T00:00:00.000Z"
+  "address": "0xYourTokenContractAddress",
+  "token": {
+    "name": "Example Token",
+    "symbol": "EXT",
+    "decimals": 18,
+    "totalSupply": "1000000000000000000000000"
+  }
 }
 ```
 
-If the RPC is missing or unavailable, the endpoint returns HTTP `503` and `{ "connected": false, "error": "..." }`. The dashboard remains usable and marks its other values as **MOCK DATA**.
+The scanner supports only these minimal ERC-20 read methods:
+
+- `name()`
+- `symbol()`
+- `decimals()`
+- `totalSupply()`
+
+Invalid addresses return HTTP `400`. A contract that does not implement the expected methods returns HTTP `422`. An unavailable RPC returns HTTP `503`. Error responses are intentionally human-readable and do not expose server stack traces.
+
+## Arc status API
+
+```text
+GET http://localhost:3000/api/arc/status
+```
+
+This returns the latest Arc block number and connection status.
 
 ## What the files do
 
-- `app/page.tsx` — the main Radar dashboard screen.
-- `app/layout.tsx` — shared page layout and metadata.
-- `app/globals.css` — global colors and Tailwind styles.
-- `app/api/arc/status/route.ts` — server API route that checks the latest Arc block.
-- `app/tokens`, `app/rug-check`, `app/whales`, `app/wallet` — starter pages for navigation.
-- `components/` — reusable UI parts, including `NetworkStatus.tsx`.
-- `lib/arc.ts` — Arc Testnet chain configuration and RPC environment lookup.
-- `lib/arc-client.ts` — read-only viem client logic.
-- `lib/mock-data.ts` — sample data used by the dashboard. This is not real blockchain data.
-- `types/` — TypeScript shapes that describe our data.
-- `.env.example` — the environment variable template.
-- `package.json` — project packages and commands.
+- `app/page.tsx` — main Radar dashboard.
+- `components/SearchBar.tsx` — token address input, API request, loading state, and scan result.
+- `components/NetworkStatus.tsx` — live Arc connection indicator.
+- `app/api/tokens/[address]/route.ts` — validates addresses and serves token metadata.
+- `lib/token-client.ts` — minimal server-side ERC-20 reads.
+- `lib/arc.ts` — Arc Testnet chain configuration.
+- `lib/arc-client.ts` — server-side read-only viem client.
+- `lib/mock-data.ts` — dashboard sample data, not real blockchain data.
+- `types/` — TypeScript data types.
 
 ## Read-only safety notes
 
-This phase only calls the public RPC `getBlockNumber` method. It does not create wallets, use private keys, sign messages, or send transactions. `viem` is used only for read-only blockchain access. `NEXT_PUBLIC_ARC_RPC_URL` is an endpoint URL, not a private credential.
+All blockchain calls in this phase are read-only. There are no private keys, wallet connections, signing operations, transaction sends, or write contract calls. `totalSupply` stays a string in API JSON so large integer values are not rounded by JavaScript.
 
 To create a production build, use `npm run build`, then `npm start`.
 
 ## What we will build next
 
-1. Replace mock dashboard values with safe, public blockchain data.
-2. Make the token contract search work.
-3. Add token analytics and Rug Check results.
-4. Add whale and wallet tracking, then alerts.
-5. Add X/Twitter automation with secure server-side credentials only if needed.
+1. Add more safe, public on-chain token data.
+2. Add Rug Check analysis.
+3. Add whale and wallet tracking.
+4. Add alerts.
+5. Consider X/Twitter automation with secure server-side credentials only if needed.
